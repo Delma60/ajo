@@ -1,0 +1,77 @@
+name: Deploy Laravel via FTP
+
+on:
+  push:
+    branches: [ main ]        # change to your deploy branch
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v4
+        with:
+          php-version: '8.2'
+          extensions: mbstring, bcmath, pcntl, xml, curl
+          ini-values: memory_limit=-1
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Cache Composer
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      - name: Install PHP dependencies (build vendor locally)
+        run: composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction
+
+      - name: Install Node dependencies & build assets
+        run: |
+          npm ci
+          npm run build        # or your build script (vite build, mix, etc.)
+
+      - name: Prepare .ftpignore
+        run: |
+          cat > .ftpignore <<'EOF'
+          .git
+          .github
+          tests
+          node_modules
+          .env
+          storage/*.key
+          storage/framework/cache
+          storage/framework/sessions
+          storage/framework/views
+          storage/logs
+          .vagrant
+          EOF
+
+      - name: Upload to FTP/FTPS
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
+        with:
+          server: ftp.spurs-developers.com.ng
+          username: greyfund@spurs-developers.com.ng
+          password: api.greyfund.spurs-developers.com.ng
+          port: 21
+          protocol: ftps                           # use 'ftp' or 'ftps' (secure) or 'sftp' if supported
+          local-dir: ./                            # or ./public if you only want public
+          server-dir: ./api.greyfund.spurs-developers.com.ng
+          exclude: |
+            .ftpignore
+            .env
+            .github
+            tests
