@@ -69,7 +69,7 @@ class PaymentService
         if ($useWallet) {
             return DB::transaction(function () use ($user, $group, $amount, $meta, $idempotency) {
                 // withdrawFromWallet will throw if insufficient balance and will create a SUCCESS transaction
-                $tx = $user->withdrawFromWallet($amount, array_merge($meta, ['idempotency_key' => $idempotency]));
+                $tx = $user->withdrawFromWallet($amount, array_merge($meta, ['idempotency_key' => $idempotency, "type" => "wallet"]));
 
                 // Safely update pivot contributed and group's saved in a DB-atomic way
                 try {

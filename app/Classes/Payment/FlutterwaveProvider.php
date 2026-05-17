@@ -418,34 +418,39 @@ class FlutterwaveProvider extends PaymentBase
     }
 
     public function verifyBankAccount(array $payload):array{
-        $res = $this->post("/banks/account-resolve", [
-            "account" => [
-                "code" => $payload['code'],
-                "number" => $payload['number'],
-            ],
-            "currency" => "NGN"
+        $res = $this->post("/accounts/resolve", [
+            "account_number" => $payload['number'],
+            "account_code" => $payload['code'],
+            // "account" => [
+            // ],
+            // "currency" => "NGN" 
+            
         ]);
         return $res['raw'];
     }
+
     protected function handleTransfer(array $payload):array{
-        $res= $this->post("/direct-transfers", [
-            "action" => "instant",
-            "type" => 'bank',
+        $res= $this->post("/transfers", [
+            "account_bank" => $payload['bank']['meta']['code'],
+            "account_number" => $payload['bank']['account_number'],
+            "amount" => $payload['amount_to_be_paid'],
+            "currency" => "NGN",
             "reference" => $payload['reference'],
-            "payment_instruction" => [
-                "amount" => [
-                    "value" => $payload['amount_to_be_paid'],
-                    "applies_to" => "destination_currency",
-                ],
-                "source_currency" => "NGN",
-                "destination_currency" => "NGN",
-                "recipient" => [
-                    "bank" => [
-                        "code" => $payload['bank']['meta']['code'] ?? '044',
-                        "account_number" => $payload['bank']['account_number']
-                    ]
-                ]
-            ]
+            "narration" => "Payout"
+
+            // "action" => "instant",
+            // "type" => 'bank',
+            // "payment_instruction" => [
+            //     "amount" => [
+            //         "applies_to" => "destination_currency",
+            //     ],
+            //     "destination_currency" => "NGN",
+            //     "recipient" => [
+            //         "bank" => [
+            //             "code" => $payload['bank']['meta']['code'] ?? '044',
+            //         ]
+            //     ]
+            // ]
         ]);
         if(!$res) return [];
 

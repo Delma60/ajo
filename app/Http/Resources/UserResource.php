@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Models\Referral;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -16,19 +17,26 @@ class UserResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        // return parent::toArray($request);
-        $referrals = \App\Models\Referral::where('referrer_id', $this->id)->with('referred')->get();
-        $referredUsers = $referrals->map(function($r) {
-            return [
-                'id' => $r->referred?->id,
-                'name' => $r->referred?->name,
-                'email' => $r->referred?->email,
-                'accepted_at' => $r->accepted_at,
-                'code' => $r->code,
-            ];
-        })->filter(fn($x) => !is_null($x['id']))->values();
-
-        $invitedCount = $referredUsers->count();
+        $referralCode = $this->referral_code;
+        $referredUsers = collect();
+        $invitedCount = 0;
+        
+        // Only load referral data if this is a "full" profile response
+        if ($request->routeIs('*.me') || $request->query('include_referrals')) {
+            $referrals = Referral::whereReferrerId($this->id)
+                ->with('referred')
+                ->get();
+            $referredUsers = $referrals->map(function($r) {
+                return [
+                    'id' => $r->referred?->id,
+                    'name' => $r->referred?->name,
+                    'email' => $r->referred?->email,
+                    'accepted_at' => $r->accepted_at,
+                    'code' => $r->code,
+                ];
+            })->filter(fn($x) => !is_null($x['id']))->values();
+            $invitedCount = $referredUsers->count();
+        }
 
         return [
             "id" => $this->id,

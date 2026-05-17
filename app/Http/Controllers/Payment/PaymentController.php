@@ -50,6 +50,7 @@ class PaymentController extends Controller
 
             return response()->json(['ok' => true, 'transaction' => $tx]);
         } catch (\Throwable $e) {
+            Log::info($e);
             return response()->json(['error' => $e->getMessage()], 400);
         }
     }
@@ -82,7 +83,7 @@ class PaymentController extends Controller
             );
 
             // Log::info(["res" => $tx]);p
-            
+
 
             return response()->json(['ok' => true, 'transaction' => $tx]);
         } catch (\Throwable $e) {

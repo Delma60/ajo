@@ -15,17 +15,25 @@ use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\Log;
 use App\Services\ReferralService;
 
-class AuthController extends Controller
+class AuthController extends Controller implements HasMiddleware
 {
+    public static function middleware ():array{
+        return [
+            new Middleware("auth:sanctum", ["me", "forgotPassword"])
+        ];
+    }
 
-    public function me(Request $request)
+    public  function me(Request $request)
     {
         $user = $request->user();
         Log::info($user);
         if (!$user) {
-            return response()->json(["meta" => ["auth" => ["user" => null]]], 200);
+            return response()->json([
+                "user" => new UserResource($user),
+                "meta" => ["auth" => ["user" => null]]
+                ], 200);
         }
-        return response()->json(["meta" => ["auth" => ["user" => new UserResource($user)]]], 200);
+        return response()->json(["user" => new UserResource($user), "meta" => ["auth" => ["user" => new UserResource($user)]]], 200);
     }
 
     /**
@@ -51,7 +59,14 @@ class AuthController extends Controller
         if (Auth::attempt(array_merge($credentials, ['password' => $data['password']]))) {
             $request->session()->regenerate();
             $user = Auth::user();
-            return response()->json(["meta" => ["auth" => ["user" => new UserResource($user)]]], 200);
+
+            return response()->json([
+                "user" => new UserResource($user),
+                "meta" => [
+                    "auth" => ["user" => new UserResource($user)
+                    ]
+                ]
+            ], 200);
         }
 
         return response()->json(['message' => 'Invalid credentials'], 401);
@@ -62,6 +77,8 @@ class AuthController extends Controller
      */
     public function tokenLogin(Request $request)
     {
+        error_log("here >> ");
+
         $data = $request->validate([
             'email' => 'nullable|email',
             'phone' => 'nullable|string',
@@ -69,6 +86,7 @@ class AuthController extends Controller
             'password' => 'required|string',
             'device_name' => 'nullable|string'
         ]);
+        error_log("here");
 
         $query = User::query();
         if (!empty($data['email'])) $query->where('email', $data['email']);
@@ -86,6 +104,7 @@ class AuthController extends Controller
             'data' => [
                 'token' => $token,
                 'token_type' => 'bearer',
+                'expire_in' => 36000,
                 'user' => new UserResource($user)
             ]
         ], 200);

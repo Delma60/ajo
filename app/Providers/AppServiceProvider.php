@@ -26,6 +26,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Register Inertia service provider
+        $this->app->register(\Inertia\ServiceProvider::class);
+
         // Return structured JSON for API errors when request expects JSON
         $this->app->make('Illuminate\Foundation\Exceptions\Handler')->renderable(function (ValidationException $e, Request $request) {
             if ($request->wantsJson()) {

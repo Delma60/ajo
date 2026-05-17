@@ -16,6 +16,7 @@ class TransactionResource extends JsonResource
     {
         return [
             "id" => $this->id,
+            "created_at" => $this->created_at,
             "reference" => $this->reference,
             "label" => $this->label,
             "created_at" => $this->created_at,
