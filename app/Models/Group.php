@@ -27,7 +27,7 @@ class Group extends Model
         'saved' => 'float',
     ];
 
-    protected $appends = ["is_private", "group_transaction", 'next_payout', 'next_payout_human'];
+    protected $appends = ["is_private", 'next_payout', 'next_payout_human'];
 
 
     // protected $with = ["owner", 'users'];

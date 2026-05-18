@@ -171,171 +171,171 @@ class Transaction extends Model
      * Label generation helpers
      * ------------------------- */
 
-    protected function generateLabel(): string
-{
-    $type = $this->type ?? null;
-    $meta = $this->meta ?? [];
+    public function generateLabel(): string
+    {
+        $type = $this->type ?? null;
+        $meta = $this->meta ?? [];
 
-    // helper: safe user name fetch (tries relation then lightweight find)
-    $fetchUserName = function ($userId) {
-        if (empty($userId)) return null;
-        if ($this->relationLoaded('user') && $this->user) {
-            return $this->user->name ?? null;
-        }
-        try {
-            $u = \App\Models\User::find($userId);
-            return $u ? ($u->name ?? null) : null;
-        } catch (\Throwable $ex) {
-            return null;
-        }
-    };
-
-    // helper: safe group name fetch
-    $fetchGroupName = function () {
-        if ($this->relationLoaded('group') && $this->group) {
-            return $this->group->name ?? null;
-        }
-        if (!empty($this->group_id)) {
+        // helper: safe user name fetch (tries relation then lightweight find)
+        $fetchUserName = function ($userId) {
+            if (empty($userId)) return null;
+            if ($this->relationLoaded('user') && $this->user) {
+                return $this->user->name ?? null;
+            }
             try {
-                $g = \App\Models\Group::find($this->group_id);
-                return $g ? $g->name : null;
+                $u = \App\Models\User::find($userId);
+                return $u ? ($u->name ?? null) : null;
             } catch (\Throwable $ex) {
                 return null;
             }
-        }
-        return null;
-    };
+        };
 
-    // helper: look for first non-empty meta key from a list
-    $metaValue = function (array $keys) use ($meta) {
-        foreach ($keys as $k) {
-            if (!empty($meta[$k])) return $meta[$k];
-        }
-        return null;
-    };
-
-    // amount string (if amount present)
-    $amountStr = null;
-    if (!is_null($this->amount)) {
-        $currency = $this->currency ?? 'NGN';
-        $amountStr = number_format((float)$this->amount, 2) . ' ' . strtoupper($currency);
-    }
-
-    // Determine common name holders from meta
-    $senderName = $metaValue(['sender_name', 'from_user_name', 'from_name', 'payer_name', 'from']);
-    $recipientName = $metaValue(['recipient_name', 'to_user_name', 'to_name', 'beneficiary_name', 'to']);
-    $accountFrom = $metaValue(['from_account', 'from_account_number']);
-    $accountTo = $metaValue(['to_account', 'to_account_number']);
-    $merchantName = $metaValue(['merchant_name', 'business_name']);
-    $investmentName = $metaValue(['investment_name', 'investment']);
-    $sourceName = $metaValue(['source', 'source_name']);
-
-    // Group hint
-    $groupName = $fetchGroupName();
-
-    // Convenience: decide if this is a reversal
-    $isReversal = !empty($meta['reversed']) || !empty($meta['is_reversal']) || $type === self::TYPE_REFUND;
-
-    $label = '';
-
-    switch ($type) {
-        case self::TYPE_TRANSFER:
-            // Prefer clear "from" or "to" phrasing using direction and available meta.
-            // If direction is credit -> user received money, so show "Transfer from <sender>"
-            // If direction is debit -> user sent money, so show "Transfer to <recipient>"
-            if ($this->direction === self::DIRECTION_CREDIT) {
-                // credit => "Transfer from X"
-                if ($senderName) {
-                    $label = "Transfer from {$senderName}";
-                } elseif ($accountFrom) {
-                    $label = "Transfer from acct " . $this->maskAccountNumber($accountFrom);
-                } else {
-                    // fallback to any available recipientName but reverse wording
-                    $label = $recipientName ? "Transfer from {$recipientName}" : "Transfer";
-                }
-            } else {
-                // debit or unknown => "Transfer to X"
-                if ($recipientName) {
-                    $label = "Transfer to {$recipientName}";
-                } elseif ($accountTo) {
-                    $label = "Transfer to acct " . $this->maskAccountNumber($accountTo);
-                } elseif ($senderName) {
-                    // fallback
-                    $label = "Transfer to {$senderName}";
-                } else {
-                    $label = "Transfer";
+        // helper: safe group name fetch
+        $fetchGroupName = function () {
+            if ($this->relationLoaded('group') && $this->group) {
+                return $this->group->name ?? null;
+            }
+            if (!empty($this->group_id)) {
+                try {
+                    $g = \App\Models\Group::find($this->group_id);
+                    return $g ? $g->name : null;
+                } catch (\Throwable $ex) {
+                    return null;
                 }
             }
-            break;
+            return null;
+        };
 
-        case self::TYPE_PAYOUT:
-            // User is receiving a payout from a group/investment OR it's a payout to bank (merchant pays out)
-            if ($groupName) {
-                $label = "Payout from {$groupName}";
-            } elseif ($investmentName) {
-                $label = "Payout from {$investmentName}";
-            } elseif ($sourceName) {
-                $label = "Payout from {$sourceName}";
-            } elseif (!empty($meta['bank_name'])) {
-                // if meta contains bank_name, this is likely a payout to that bank
-                $label = "Payout to " . $meta['bank_name'];
-            } else {
-                $label = "Payout";
+        // helper: look for first non-empty meta key from a list
+        $metaValue = function (array $keys) use ($meta) {
+            foreach ($keys as $k) {
+                if (!empty($meta[$k])) return $meta[$k];
             }
-            break;
+            return null;
+        };
 
-        case self::TYPE_TOPUP:
-            // Top-up — prefer note or source
-            if ($sourceName) {
-                $label = "Top-up from {$sourceName}";
-            } elseif (!empty($meta['note'])) {
-                $label = $meta['note'];
-            } else {
-                $label = "Top-up";
-            }
-            break;
-
-        case self::TYPE_REFUND:
-            // Refunds often mean reversal
-            if ($isReversal) {
-                $label = "Payment Reversed";
-            } elseif (!empty($meta['note'])) {
-                $label = "Refund — " . $meta['note'];
-            } else {
-                $label = "Refund";
-            }
-            break;
-
-        case self::TYPE_CHARGE:
-        default:
-            // Payment / charge
-            if ($isReversal) {
-                $label = "Payment Reversed";
-            } elseif (!empty($meta['note'])) {
-                $label = $meta['note'];
-            } elseif ($merchantName) {
-                $label = "Payment to {$merchantName}";
-            } else {
-                $label = "Payment";
-            }
-            break;
-    }
-
-    // append user hint for clarity when appropriate (don't duplicate group)
-    if (!empty($this->user_id) && empty($groupName)) {
-        $userName = $fetchUserName($this->user_id);
-        if ($userName) {
-            
+        // amount string (if amount present)
+        $amountStr = null;
+        if (!is_null($this->amount)) {
+            $currency = $this->currency ?? 'NGN';
+            $amountStr = number_format((float)$this->amount, 2) . ' ' . strtoupper($currency);
         }
-    }
 
-    // Finally append amount if present
-    if ($amountStr) {
+        // Determine common name holders from meta
+        $senderName = $metaValue(['sender_name', 'from_user_name', 'from_name', 'payer_name', 'from']);
+        $recipientName = $metaValue(['recipient_name', 'to_user_name', 'to_name', 'beneficiary_name', 'to']);
+        $accountFrom = $metaValue(['from_account', 'from_account_number']);
+        $accountTo = $metaValue(['to_account', 'to_account_number']);
+        $merchantName = $metaValue(['merchant_name', 'business_name']);
+        $investmentName = $metaValue(['investment_name', 'investment']);
+        $sourceName = $metaValue(['source', 'source_name']);
+
+        // Group hint
+        $groupName = $fetchGroupName();
+
+        // Convenience: decide if this is a reversal
+        $isReversal = !empty($meta['reversed']) || !empty($meta['is_reversal']) || $type === self::TYPE_REFUND;
+
+        $label = '';
+
+        switch ($type) {
+            case self::TYPE_TRANSFER:
+                // Prefer clear "from" or "to" phrasing using direction and available meta.
+                // If direction is credit -> user received money, so show "Transfer from <sender>"
+                // If direction is debit -> user sent money, so show "Transfer to <recipient>"
+                if ($this->direction === self::DIRECTION_CREDIT) {
+                    // credit => "Transfer from X"
+                    if ($senderName) {
+                        $label = "Transfer from {$senderName}";
+                    } elseif ($accountFrom) {
+                        $label = "Transfer from acct " . $this->maskAccountNumber($accountFrom);
+                    } else {
+                        // fallback to any available recipientName but reverse wording
+                        $label = $recipientName ? "Transfer from {$recipientName}" : "Transfer";
+                    }
+                } else {
+                    // debit or unknown => "Transfer to X"
+                    if ($recipientName) {
+                        $label = "Transfer to {$recipientName}";
+                    } elseif ($accountTo) {
+                        $label = "Transfer to acct " . $this->maskAccountNumber($accountTo);
+                    } elseif ($senderName) {
+                        // fallback
+                        $label = "Transfer to {$senderName}";
+                    } else {
+                        $label = "Transfer";
+                    }
+                }
+                break;
+
+            case self::TYPE_PAYOUT:
+                // User is receiving a payout from a group/investment OR it's a payout to bank (merchant pays out)
+                if ($groupName) {
+                    $label = "Payout from {$groupName}";
+                } elseif ($investmentName) {
+                    $label = "Payout from {$investmentName}";
+                } elseif ($sourceName) {
+                    $label = "Payout from {$sourceName}";
+                } elseif (!empty($meta['bank_name'])) {
+                    // if meta contains bank_name, this is likely a payout to that bank
+                    $label = "Payout to " . $meta['bank_name'];
+                } else {
+                    $label = "Payout";
+                }
+                break;
+
+            case self::TYPE_TOPUP:
+                // Top-up — prefer note or source
+                if ($sourceName) {
+                    $label = "Top-up from {$sourceName}";
+                } elseif (!empty($meta['note'])) {
+                    $label = $meta['note'];
+                } else {
+                    $label = "Top-up";
+                }
+                break;
+
+            case self::TYPE_REFUND:
+                // Refunds often mean reversal
+                if ($isReversal) {
+                    $label = "Payment Reversed";
+                } elseif (!empty($meta['note'])) {
+                    $label = "Refund — " . $meta['note'];
+                } else {
+                    $label = "Refund";
+                }
+                break;
+
+            case self::TYPE_CHARGE:
+            default:
+                // Payment / charge
+                if ($isReversal) {
+                    $label = "Payment Reversed";
+                } elseif (!empty($meta['note'])) {
+                    $label = $meta['note'];
+                } elseif ($merchantName) {
+                    $label = "Payment to {$merchantName}";
+                } else {
+                    $label = "Payment";
+                }
+                break;
+        }
+
+        // append user hint for clarity when appropriate (don't duplicate group)
+        if (!empty($this->user_id) && empty($groupName)) {
+            $userName = $fetchUserName($this->user_id);
+            if ($userName) {
+                
+            }
+        }
+
+        // Finally append amount if present
+        if ($amountStr) {
+            return trim($label);
+        }
+
         return trim($label);
     }
-
-    return trim($label);
-}
 
 
 

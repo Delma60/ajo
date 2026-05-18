@@ -61,10 +61,6 @@ class User extends Authenticatable
         return $this->hasMany(Group::class, 'owner_id');
     }
 
-    public function transactions(): HasMany
-    {
-        return $this->hasMany(Transaction::class);
-    }
 
     public function notifications() {
         return $this->morphMany(DatabaseNotification::class, 'notifiable')->orderBy('created_at', 'desc');
@@ -188,7 +184,7 @@ class User extends Authenticatable
                     'period_end' => $periodEnd,
                     // include anchor start_date from group meta for client usage
                     'start_date' => $group->meta['start_date'] ?? null,
-                    'due_by' => $periodEnd,
+                    'due_by' => $periodEnd, //Carbon::parse($periodEnd)->diffForHumans(),
                     'paid' => (bool) $paid, // legacy
                     'has_paid' => (bool) $paid, // front-end friendly name
                     'hasPaid' => (bool) $paid, // alternative camelCase key (frontend checks multiple)

@@ -19,8 +19,14 @@ class GroupController extends Controller
     public function index()
     {
         //
-        $g = Group::with(['users', 'owner', "transactions"])->get();
-        return GroupResource::collection($g);
+        $groups = Group::where(function($query) {
+            $query->where('meta->is_private', false)
+                  ->orWhereNull('meta->is_private');
+        })
+        ->with(['users', 'owner', 'transactions'])
+        ->get();
+
+        return GroupResource::collection($groups);
 
     }
 
@@ -48,7 +54,7 @@ class GroupController extends Controller
             // compute creation fee BEFORE creating anything
             $contribution = (float) ($data['contribution'] ?? 0);
             $maxMembers = (int) ($data['max_members'] ?? 0);
-            $creationBase = $contribution * $maxMembers;
+            $creationBase = $contribution * 1;
             $creationFee = round($creationBase * 0.05, 2);
 
             // eager-load owner and check balance first (pre-flight)
@@ -130,8 +136,21 @@ class GroupController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Group $group)
+    public function show(Request $request, Group $group)
     {
+        $isPrivate = $group->meta['is_private'] ?? false;
+        
+        if ($isPrivate) {
+            // If it is private, the currently authenticated user MUST be a member
+            $user = $request->user();
+            $isMember = $group->users()->where('users.id', $user->id)->exists();
+
+            if (!$isMember) {
+                return response()->json([
+                    'message' => 'This group is private. You must be invited to view its details.'
+                ], 403);
+            }
+        }
         return new GroupResource($group->load(['users', "owner", "transactions"]));
     }
 

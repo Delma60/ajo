@@ -25,8 +25,7 @@ class ImageController extends Controller
      */
     public function store(Request $request)
     {
-        //
-        Log::info($request->all());
+        
 
         $data = $request->validate([
             // We accept either 'files' (array) or 'file' (single). Validate presence below.
@@ -55,10 +54,7 @@ class ImageController extends Controller
         foreach ($fileArray as $file) {
             try {
                 // store file on disk (creates thumbnail if available)
-                $storeResult = ImageService::store($file, $tag ?? 'images', 'public', [
-                    'make_thumbnail' => true,
-                    'thumbnail' => ['width' => 400, 'height' => 400, 'prefix' => 'thumb_'],
-                ]);
+                $storeResult = ImageService::store($file, $tag ?? 'images');
 
                 // create DB record (adjust fields to your Image model)
                 $image = Image::create([

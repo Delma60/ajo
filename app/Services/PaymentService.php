@@ -233,7 +233,7 @@ class PaymentService
             $net = $amount - $fee;
 
 
-            $user->transactions()->create([
+            $insertedTx = $user->transactions()->create([
                 'uuid' => (string) Str::uuid(),
                 'reference' => $meta['reference'] ?? $tx->reference,
                 'label' => $meta['label'] ?? null,
@@ -264,6 +264,8 @@ class PaymentService
             } catch (\Throwable $ex) {
                 Log::warning('Failed to send pending deposit notification: ' . $ex->getMessage());
             }
+
+            return $insertedTx;
         }
 
         // Otherwise tx is pending; will be credited when webhook reconciles
@@ -325,7 +327,6 @@ class PaymentService
 
     public function verifyBankAccount(array $payload, $provider ="flutterwave"){
         $payment = PaymentFactory::provider($provider);
-        Log::info("Sigh");
         return $payment->verifyBankAccount($payload);
     }
 }

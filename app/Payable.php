@@ -115,7 +115,7 @@ trait Payable
             // use decrement to avoid race conditions if multiple requests happen concurrently
             $fee = $meta['fee'] ?? 0;
             $net = $amount - $fee;
-            if ($meta['type'] === 'wallet') {
+            if (($meta['type'] ?? null) === 'wallet') {
                 $payload = [
                     'uuid' => (string) Str::uuid(),
                     'reference' => $meta['reference'] ?? "wallet_withdraw:{$this->id}:" . time(),

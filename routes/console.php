@@ -14,7 +14,7 @@ Schedule::call(function () {
         $dueGroups = Group::where('status', 'active')
             ->get();
             foreach ($dueGroups as $group) {
-                $payoutDate = Carbon::parse($group->next_payout);
+                $payoutDate = $group->next_payout;
                 $timeFrame = $payoutDate->lessThanOrEqualTo($now);
                 if($timeFrame){
                     Log::info("[Alert]: Checking groups cycles");
@@ -33,7 +33,7 @@ Schedule::call(function () {
         // TODO:: Add Notification
         // TODO:: Add the user pending to $user->available_balance
         foreach ($bals as $bal) {
-            $user->creditToWallet($bal);
+            $user->creditToWallet($bal->amount);
             file_put_contents("{$user->name}_balances.json", $bal);
         }
 

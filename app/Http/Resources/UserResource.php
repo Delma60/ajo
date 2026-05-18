@@ -37,6 +37,7 @@ class UserResource extends JsonResource
             })->filter(fn($x) => !is_null($x['id']))->values();
             $invitedCount = $referredUsers->count();
         }
+        $totalSaved = (float) $this->groups()->sum('group_user.contributed');
 
         return [
             "id" => $this->id,
@@ -50,6 +51,7 @@ class UserResource extends JsonResource
                 "pending_wallet" => $this->pending_balance,
                 "available_referral" => $this->available_referral,
                 "pending_referral" => $this->pending_referral,
+                "total_saved" => $totalSaved,
             ],
             "isVerified" => $this->isVerified,
             "status" => $this->status,

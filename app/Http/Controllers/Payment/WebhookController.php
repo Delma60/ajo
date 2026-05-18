@@ -170,8 +170,22 @@ class WebhookController extends Controller
                     $user = $tx->user;
                     if ($user && $amt > 0) {
                         // Use increment or your own wallet method
-                        $user->increment('available_wallet', $amt);
-                        Log::info("Credited user {$user->id} wallet with {$amt} from transaction {$tx->id}");
+                        if($tx->type === Transaction::TYPE_TOPUP){
+                            $user->increment('available_wallet', $amt);
+                            Log::info("Credited user {$user->id} wallet with {$amt} from transaction {$tx->id}");
+                        }
+                        elseif($tx->type === Transaction::TYPE_CHARGE && $tx->group_id){
+                            $group = $tx->group;
+                            if($group){
+                                $group->increment('saved', $amt);
+                                $group->users()->updateExitingPivot($user->id, [
+                                    'contributed' => DB::raw("COALESCE(contribute,0) + {$amt}"),
+                                    'total_contributed' => DB::raw("COALESCE(total_contributed,0) + {$amt}"),
+                                    'last_payment_at' => now(),
+                                ]);
+                            }
+
+                        }
                     }
                 } catch (\Throwable $e) {
                     Log::warning("Failed to credit user wallet after charge.completed: " . $e->getMessage());

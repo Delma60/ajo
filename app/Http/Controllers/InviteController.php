@@ -181,6 +181,13 @@ class InviteController extends Controller
      */
     public function requestToJoin(Request $request, Group $group)
     {
+        $isPrivate = $group->meta['is_private'] ?? false;
+        
+        if ($isPrivate) {
+            return response()->json([
+                'message' => 'This group is private and does not accept join requests. You must be invited by an admin.'
+            ], 403);
+        }
         $user = $request->user();
 
         $data = $request->validate([

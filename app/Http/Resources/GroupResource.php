@@ -79,8 +79,8 @@ class GroupResource extends JsonResource
             "membersCount" => $this->users->count(), //$this->whenCounted("users", $this->users->count(), 0),
             "max_members" => $this->meta['max_members'],
             "admin" => new UserResource($this->whenLoaded("owner")),
-            'period_start' => $periodStart->toISOString(),
-            'period_end' => $periodEnd->toISOString(),
+            'period_start' => $periodStart ? $periodStart->toISOString() : null,
+            'period_end'   => $periodEnd ? $periodEnd->toISOString() : null,
             "transactions" => $this->whenLoaded("transactions", TransactionResource::collection($this->transactions), []),
             "cycles" => $this->whenLoaded("cycles", $this->cycles),
             "members" => $this->whenLoaded("users", function () use($periodStart, $periodEnd) {

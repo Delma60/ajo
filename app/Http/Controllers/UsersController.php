@@ -47,8 +47,10 @@ class UsersController extends Controller
         //
         $user = User::find($id);
         if(!$user) return response()->json([ "message" => 'User not found' ], 404);
-        // PaymentService::;
-        $paymentService->generateVirtualAccounts($user->toArray());
+        if (!$user->hasVirtualBank('flutterwave')) {
+            $paymentService->generateVirtualAccounts($user->toArray());
+        }
+
         return new UserResource($user
         ->load(["banks"]));
     }

@@ -67,7 +67,7 @@ class BankCardController extends Controller
 
             if($pi){
                 $pi->update([
-                    "card_id" > $bankCard->id
+                    "card_id" => $bankCard->id
                 ]);
 
             }

@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string("bank_name")->nullable();
             $table->enum("status", ["active", "inactive"])->default("active");
             $table->string("reference")->nullable();
-            $table->json("meta")->nullable;
+            $table->json("meta")->nullable();
             $table->timestamps();
         });
     }

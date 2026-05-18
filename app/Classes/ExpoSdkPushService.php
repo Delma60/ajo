@@ -53,7 +53,8 @@ class ExpoSdkPushService
                     continue;
                 }
                 foreach ($defaultRecipients as $recipient) {
-                    $clone = new ExpoMessage($payload->toArray ? $payload->toArray() : (array)$payload); // defensive
+                    // app/Classes/ExpoSdkPushService.php
+                    $clone = new ExpoMessage(method_exists($payload, 'toArray') ? $payload->toArray() : (array)$payload); // defensive
                     $clone->setTo($recipient);
                     $expanded[] = $clone;
                 }

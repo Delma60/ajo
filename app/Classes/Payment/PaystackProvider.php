@@ -4,7 +4,7 @@ namespace App\Classes\Payment;
 
 class PaystackProvider implements PaymentInterface
 {
-    public function charge(array $payload): array
+    public function charge($method, array $payload): array
     {
         // Placeholder for paystack charge initiation
         return [
