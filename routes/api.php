@@ -52,7 +52,8 @@ Route::prefix("v1")->group(function(){
         Route::get('/payments/banks-list', [PaymentController::class, 'banks']);
         Route::post('/payments/bank/look-up', [PaymentController::class, 'verifyBankAccount']);
 
-        Route::get('/transactions', [TransactionController::class, 'index']);
+        Route::resource('/transactions', TransactionController::class)->only(['index', 'store', 'show']);
+        // Route::get('/transactions', [TransactionController::class, 'index']);
         Route::get('/notifications', [NotificationController::class, 'index']);
         Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
         Route::post('/notifications/mark-read', [NotificationController::class, 'markRead']);

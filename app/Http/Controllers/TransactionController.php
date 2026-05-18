@@ -14,7 +14,7 @@ class TransactionController extends Controller
 {
 
 
-    
+
     public function index(HttpRequest $request)
     {
         $userId = Auth::id();
@@ -60,6 +60,8 @@ class TransactionController extends Controller
      */
     public function show(Transaction $transaction)
     {
+        error_log("TransactionController@show called with transaction ID: " . $transaction->id);
+        
         // ensure the authenticated user owns this transaction
         if ($transaction->user_id !== Auth::id()) {
             abort(Response::HTTP_FORBIDDEN, 'You are not authorized to view this transaction.');
