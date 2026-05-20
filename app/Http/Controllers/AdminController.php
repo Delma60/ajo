@@ -7,6 +7,7 @@ use App\Http\Resources\TransactionResource;
 use App\Models\User;
 use App\Models\Group;
 use App\Models\Transaction;
+use App\Services\SystemAlertService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -242,5 +243,10 @@ class AdminController extends Controller
             ->get();
 
         return response()->json(GroupResource::collection($circles)->resolve());
+    }
+
+    public function alertSummary(SystemAlertService $service): JsonResponse
+    {
+        return response()->json($service->summary());
     }
 }

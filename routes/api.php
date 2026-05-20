@@ -13,6 +13,7 @@ use App\Http\Controllers\InviteController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Payment\PaymentController;
 use App\Http\Controllers\Payment\WebhookController;
+use App\Http\Controllers\SystemAlertController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\UsersController;
 use App\Http\Controllers\VirtualBankController;
@@ -90,6 +91,15 @@ Route::prefix("v1")->group(function(){
             Route::get('/metrics', [AdminController::class, 'metrics']);
             Route::get('/transactions/recent', [AdminController::class, 'recentTransactions']);
             Route::get('/circles/top', [AdminController::class, 'topCircles']);
+            Route::prefix('system-alerts')->controller(SystemAlertController::class)->group(function () {
+                Route::get('/',                    'index');
+                Route::get('/summary',             'summary');
+                Route::post('/resolve-all',        'resolveAll');
+                Route::post('/mark-all-read',      'markAllRead');
+                Route::post('/{alert}/resolve',    'resolve');
+                Route::post('/{alert}/read',       'markRead');
+                Route::delete('/{alert}',          'destroy');
+            });
         });
 
 

@@ -1,5 +1,6 @@
 <?php
 
+use App\Console\Commands\GenerateSystemAlerts;
 use App\Jobs\ProcessDueGroupCycles;
 use App\Models\Group;
 use App\Models\User;
@@ -39,3 +40,5 @@ Schedule::call(function () {
 
     });
 })->daily();
+
+Schedule::command(GenerateSystemAlerts::class)->everyFifteenMinutes();
