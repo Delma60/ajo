@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AppReleaseController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -72,6 +73,10 @@ Route::prefix("v1")->group(function(){
             Route::post('/logout', [\App\Http\Controllers\AuthController::class, 'logout']);
             Route::get('/me', [\App\Http\Controllers\AuthController::class, 'me']);
             Route::post('/revoke-token', [\App\Http\Controllers\AuthController::class, 'revokeToken']);
+
+        });
+        Route::prefix("profile")->group(function(){
+            Route::put('/update', [\App\Http\Controllers\ProfileController::class, 'update']);
         });
         // If you want it protected by auth:sanctum, wrap accordingly
         Route::post('/device-token', [\App\Http\Controllers\DeviceTokenController::class, 'store']);
@@ -80,6 +85,13 @@ Route::prefix("v1")->group(function(){
         Route::post('/admin/app/releases', [AppReleaseController::class, 'store']);
         Route::get('/admin/app/releases', [AppReleaseController::class, 'index']);
         Route::delete('/admin/app/releases', [AppReleaseController::class, 'destroy']);
+
+        Route::prefix('admin')->group(function () {
+            Route::get('/metrics', [AdminController::class, 'metrics']);
+            Route::get('/transactions/recent', [AdminController::class, 'recentTransactions']);
+            Route::get('/circles/top', [AdminController::class, 'topCircles']);
+        });
+
 
     });
 

@@ -182,11 +182,14 @@ class PaymentController extends Controller
     }
 
     function banks(){
-        return (new PaymentService())->listBanks();
+        $banks = (new PaymentService())->listBanks();
+        Log::info($banks);
+        return response()->json(['ok' => true, 'banks' => $banks]);
     }
 
     function verifyBankAccount(Request $request){
         $data = $request->validate([
+            
             "code" => "required|string",
             "number" => "required|string"
         ]);

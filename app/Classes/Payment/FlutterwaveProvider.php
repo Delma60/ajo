@@ -48,19 +48,7 @@ class FlutterwaveProvider extends PaymentBase
         $names = explode(" ", $payload['name']);
         $phone = preg_replace('/^0/', '', $payload['phone']);
 
-        Log::info([
-            "name" => [
-                "first" => $names[0],
-                "last" => end($names)
-            ],
-            "email" => $payload['email'],
-            "phone" => [
-                "country_code" => "234",
-                "number" =>   $phone
-            ]
-
-        ]);
-
+       
         $response = $this->post("/customers", [
             "name" => [
                 "first" => $names[0],
@@ -423,8 +411,8 @@ class FlutterwaveProvider extends PaymentBase
             "account_code" => $payload['code'],
             // "account" => [
             // ],
-            // "currency" => "NGN" 
-            
+            // "currency" => "NGN"
+
         ]);
         return $res['raw'];
     }
@@ -466,7 +454,7 @@ class FlutterwaveProvider extends PaymentBase
 
     function listBanks():array{
 
-        return Cache::remember('#flutterwave_banks', 86400, function() {
+        return Cache::remember('flutterwave_bank', 86400, function() {
              $res = $this->get("/banks", [
                 "country" => "NG"
             ]);
@@ -474,6 +462,8 @@ class FlutterwaveProvider extends PaymentBase
             if(!($res['ok'] ?? false)){
                 return [];
             }
+
+            Log::info(["flutterwave banks" => $res]);
 
             return $res['raw'];
         });
