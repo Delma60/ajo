@@ -58,13 +58,13 @@ class TransactionController extends Controller
      * Display the specified resource.
      * Uses route model binding and ensures ownership.
      */
-    public function show(Transaction $transaction)
+    public function show(Request $request, Transaction $transaction)
     {
         error_log("TransactionController@show called with transaction ID: " . $transaction->id);
         
         // ensure the authenticated user owns this transaction
-        if ($transaction->user_id !== Auth::id()) {
-            abort(Response::HTTP_FORBIDDEN, 'You are not authorized to view this transaction.');
+        if ($transaction->user_id !== $request->user()->id) {
+            return response()->json(['message' => 'Unauthorized'], 403);
         }
 
         return new TransactionResource($transaction);

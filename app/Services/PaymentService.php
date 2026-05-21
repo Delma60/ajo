@@ -39,9 +39,9 @@ class PaymentService
             throw new \InvalidArgumentException('Amount must be greater than zero.');
         }
 
-        // Prevent duplicate payments for the current period (best-effort)
-        try {
-            $period = $group->currentPeriod(); // expected ['start' => Carbon, 'end' => Carbon]
+        return DB::transaction(function () use ($user, $group, $amount, $provider, $reference, $useWallet) {
+            // Always require currentPeriod to succeed, or block payment
+            $period = $group->currentPeriod();
             $existing = Transaction::where('user_id', $user->id)
                 ->where('group_id', $group->id)
                 ->where('type', Transaction::TYPE_CHARGE)
@@ -52,66 +52,20 @@ class PaymentService
             if ($existing) {
                 throw new \RuntimeException('You have already paid for this period.');
             }
-        } catch (\Throwable $e) {
-            // fail-safe: log and continue (if currentPeriod() fails we don't block payments)
-            Log::warning('Could not determine payment period or duplicate check failed: ' . $e->getMessage());
-        }
 
-        // Build metadata and deterministic idempotency key for this logical operation
-        $meta = [
-            'group_id' => $group->id,
-            'note' => 'group contribution',
-            'reference' => $reference,
-        ];
-        $idempotency = $meta['idempotency_key'] ?? "contribution_g{$group->id}_u{$user->id}_" . md5($amount . '|' . ($reference ?? ''));
+            // Build metadata and deterministic idempotency key for this logical operation
+            $meta = [
+                'group_id' => $group->id,
+                'note' => 'group contribution',
+                'reference' => $reference,
+            ];
+            $idempotency = $meta['idempotency_key'] ?? "contribution_g{$group->id}_u{$user->id}_" . md5($amount . '|' . ($reference ?? ''));
 
-        // If using wallet, withdraw immediately and record TX as success (atomic)
-        if ($useWallet) {
-            return DB::transaction(function () use ($user, $group, $amount, $meta, $idempotency) {
-                // withdrawFromWallet will throw if insufficient balance and will create a SUCCESS transaction
+            // If using wallet, withdraw immediately and record TX as success (atomic)
+            if ($useWallet) {
                 $tx = $user->withdrawFromWallet($amount, array_merge($meta, ['idempotency_key' => $idempotency, "type" => "wallet"]));
 
-                // Safely update pivot contributed and group's saved in a DB-atomic way
-                try {
-                    // increment pivot contributed and total_contributed, set last_payment_at
-                    $userPivotExists = $group->users()->where('user_id', $user->id)->exists();
-
-                    if ($userPivotExists) {
-                        // updateExistingPivot with DB::raw to avoid race conditions
-                        $group->users()->updateExistingPivot($user->id, [
-                            'contributed' => DB::raw("COALESCE(contributed,0) + {$amount}"),
-                            'total_contributed' => DB::raw("COALESCE(total_contributed,0) + {$amount}"),
-                            'last_payment_at' => now(),
-                        ]);
-                    } else {
-                        // attach user with initial values
-                        $group->users()->attach($user->id, [
-                            'contributed' => $amount,
-                            'total_contributed' => $amount,
-                            'last_payment_at' => now(),
-                            // 'role' => 'member',
-                        ]);
-                    }
-
-                    // increment group saved
-                    $group->increment('saved', $amount);
-                } catch (\Throwable $e) {
-                    // If pivot update fails, we should surface the error (but wallet already debited).
-                    // Log and rethrow to let caller decide; advanced handling: refund or create compensating txn.
-                    Log::error("Failed to update group pivot/saved after wallet withdrawal: " . $e->getMessage(), ['group' => $group->id, 'user' => $user->id]);
-                    throw $e;
-                }
-
-                return $tx;
-            });
-        }
-
-        // For non-wallet provider: create/obtain an idempotent transaction via User::charge (which calls provider)
-        $tx = $user->charge($amount, $provider, array_merge($meta, ['idempotency_key' => $idempotency]));
-
-        // If the returned transaction is already marked success (sync provider), update group/pivot atomically.
-        if ($tx->status === Transaction::STATUS_SUCCESS) {
-            DB::transaction(function () use ($group, $user, $amount) {
+                // increment pivot contributed and total_contributed, set last_payment_at
                 $userPivotExists = $group->users()->where('user_id', $user->id)->exists();
 
                 if ($userPivotExists) {
@@ -130,14 +84,40 @@ class PaymentService
                 }
 
                 $group->increment('saved', $amount);
-            });
-        } else {
-            // Transaction is pending — it will be reconciled by webhook/worker.
-            // You may optionally mark an optimistic pending contribution row or notify user.
-            Log::info("Contribution created as pending for group {$group->id} user {$user->id} tx {$tx->id}");
-        }
+                return $tx;
+            }
 
-        return $tx;
+            // For non-wallet provider: create/obtain an idempotent transaction via User::charge (which calls provider)
+            $tx = $user->charge($amount, $provider, array_merge($meta, ['idempotency_key' => $idempotency]));
+
+            // If the returned transaction is already marked success (sync provider), update group/pivot atomically.
+            if ($tx->status === Transaction::STATUS_SUCCESS) {
+                $userPivotExists = $group->users()->where('user_id', $user->id)->exists();
+
+                if ($userPivotExists) {
+                    $group->users()->updateExistingPivot($user->id, [
+                        'contributed' => DB::raw("COALESCE(contributed,0) + {$amount}"),
+                        'total_contributed' => DB::raw("COALESCE(total_contributed,0) + {$amount}"),
+                        'last_payment_at' => now(),
+                    ]);
+                } else {
+                    $group->users()->attach($user->id, [
+                        'contributed' => $amount,
+                        'total_contributed' => $amount,
+                        'last_payment_at' => now(),
+                        // 'role' => 'member',
+                    ]);
+                }
+
+                $group->increment('saved', $amount);
+            } else {
+                // Transaction is pending — it will be reconciled by webhook/worker.
+                // You may optionally mark an optimistic pending contribution row or notify user.
+                Log::info("Contribution created as pending for group {$group->id} user {$user->id} tx {$tx->id}");
+            }
+
+            return $tx;
+        });
     }
 
     /**
@@ -217,7 +197,7 @@ class PaymentService
         ]));
 
         // If provider returned immediate success, credit wallet now
-        if ($tx->status === Transaction::STATUS_SUCCESS  && ($tx->save_to_db ?? false)) {
+        if ($tx->status === Transaction::STATUS_SUCCESS) {
             // credit and record transaction via user's domain method (atomic)
             return $user->creditToWallet($tx->amount, [
                 'provider' => $tx->provider,

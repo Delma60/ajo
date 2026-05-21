@@ -56,15 +56,15 @@ trait Payable
                 'idempotency_key' => $meta['idempotency_key'] ?? null,
             ]));
 
-        // build idempotency key (prefer provided, else deterministic)
-        $idemp = $meta['idempotency_key'] ?? ($payment['idempotency_key'] ?? "provider:{$provider}:".md5($provider . '|' . $amount . '|' . ($this->id ?? 'guest')));
+        $reference = $meta['reference'] ?? uniqid('', true);
+        $idemp = $meta['idempotency_key'] ?? md5($provider . '|' . $amount . '|' . $reference . '|' . ($this->id ?? 'guest'));
 
         // create transaction row idempotently (status pending)
         $tx = Transaction::firstOrCreateIdempotent(
             ['idempotency_key' => $idemp],
             [
                 'uuid' => (string) Str::uuid(),
-                'reference' => $payment['reference'] ?? ($meta['reference'] ?? null),
+                'reference' => $reference,
                 'label' => $meta['label'] ?? null,
                 'user_id' => $this->id ?? null,
                 'amount' => $amount,
@@ -110,7 +110,8 @@ trait Payable
             $type = $meta['type'] ?? Transaction::TYPE_TRANSFER;
             $fee = $meta['fee'] ?? 0;
             $net = $amount - $fee;
-            $idempotencyKey = $meta['idempotency_key'] ?? "wallet_withdraw_user_{$user->id}_" . md5($amount . ':' . ($meta['reference'] ?? ''));
+            $idempotencyKey = $meta['idempotency_key'] ?? Str::uuid();
+            //$meta['idempotency_key'] ?? "wallet_withdraw_user_{$user->id}_" . md5($amount . ':' . ($meta['reference'] ?? ''));
 
             return $user->transactions()->firstOrCreateIdempotent(
                 ['idempotency_key' => $idempotencyKey],

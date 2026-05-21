@@ -95,7 +95,7 @@ class GroupController extends Controller
                     $owner->charge($creationFee, 'wallet', [
                         'note' => 'One-time group creation fee',
                         'group_id' => $g->id,
-                        'type' => 'wallet'
+                        'type' => Transaction::TYPE_CHARGE
                     ]);
 
                     Transaction::create([
@@ -109,6 +109,7 @@ class GroupController extends Controller
                         'direction' => Transaction::DIRECTION_DEBIT,
                         'method' => Transaction::METHOD_WALLET,
                         'status' => Transaction::STATUS_SUCCESS,
+
                         'meta' => [
                             'note' => 'One-time group creation fee',
                         ],

@@ -113,7 +113,9 @@ class Transaction extends Model
                     $t->label = $t->generateLabel();
                 } catch (\Throwable $ex) {
                     Log::warning('Transaction::generateLabel failed: ' . $ex->getMessage());
-                    $t->label = self::$typeLabels[$t->type] ?? ucfirst($t->type ?? 'Transaction');
+                    $typeString = $t->type ?? 'Transaction';
+                    $t->label = self::$typeLabels[$typeString] ?? ucfirst($typeString);
+                    
                 }
             }
         });

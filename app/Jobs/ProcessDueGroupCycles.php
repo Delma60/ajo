@@ -6,6 +6,7 @@ use App\Classes\GroupPayoutService;
 use App\Models\Group;
 use App\Models\PendingAccountBalance;
 use App\Models\Transaction;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -211,12 +212,22 @@ class ProcessDueGroupCycles implements ShouldQueue
                     'amount' => $payoutAmount,
                 ]);
 
+                $recipientUser = User::find($userId);
+                if ($recipientUser) {
+                    $paymentService = app(\App\Services\PaymentService::class);
+                    try {
+                        // Pass 'wallet' as method/provider as per your logic
+                        $paymentService->deposit($recipientUser, $payoutAmount, 'wallet', 'system', null, false, ['note' => 'Group Payout']);
+                    } catch (\Throwable $e) {
+                        Log::error("Payout transfer failed for user {$userId}: " . $e->getMessage());
+                    }
+                }
+
                 Log::info("[ProcessDueGroupCycles] Allocated payout {$payoutAmount} to user {$userId} for group {$group->id} (cycle {$cycleNumber}).");
             }
 
             // Zero group's saved AFTER allocation
             $group->update(['saved' => 0]);
-            $paymentService->deposit($recipientUser, $payoutAmount, 'wallet', 'flutterwave', null, false, ['note' => 'Group Payout']);
 
             DB::commit();
 
