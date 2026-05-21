@@ -9,11 +9,11 @@ class GroupCycle extends Model
 {
     //
     protected $fillable = [
-        'amount', 
-        "start_up", 
-        "end_at", 
-        "cycle_number", 
-        "group_id", 
+        'amount',
+        "start_at",
+        "end_at",
+        "cycle_number",
+        "group_id",
         "recipient"
     ];
 

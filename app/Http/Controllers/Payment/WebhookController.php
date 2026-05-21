@@ -178,7 +178,7 @@ class WebhookController extends Controller
                             $group = $tx->group;
                             if($group){
                                 $group->increment('saved', $amt);
-                                $group->users()->updateExitingPivot($user->id, [
+                                $group->users()->updateExistingPivot($user->id, [
                                     'contributed' => DB::raw("COALESCE(contribute,0) + {$amt}"),
                                     'total_contributed' => DB::raw("COALESCE(total_contributed,0) + {$amt}"),
                                     'last_payment_at' => now(),

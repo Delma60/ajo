@@ -10,7 +10,7 @@ class SystemProvider implements PaymentInterface
         return [
             'status' => 'success',
             'reference' => $payload['reference'] ?? uniqid('sys_'),
-+            'provider' => 'system',
+            'provider' => 'system',
             'data' => $payload,
         ];
     }

@@ -58,8 +58,8 @@ class ProcessDueGroupCycles implements ShouldQueue
 
             $now = Carbon::now();
             $nextPayout = $group->next_payout ?? $now;
-            $periodEnd = Carbon::parse($nextPayout)->endOfDay();
-            $periodStart = $this->subtractInterval(Carbon::parse($nextPayout), $group->frequency)->startOfDay();
+            $periodEnd = $nextPayout->copy()->endOfDay() ;//Carbon::parse($nextPayout)->endOfDay();
+            $periodStart = $this->subtractInterval($nextPayout->copy(), $group->frequency)->startOfDay();
 
             // recipients to receive this cycle (service may return models/resources)
             $recipients = $groupPayoutService->determineRecipient($group);

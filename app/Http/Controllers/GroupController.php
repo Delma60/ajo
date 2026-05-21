@@ -142,7 +142,7 @@ class GroupController extends Controller
     public function show(Request $request, Group $group)
     {
         $byPass = $request->boolean("by_pass", false);
-        
+
         $isPrivate = $group->meta['is_private'] ?? false;
 
         if ($isPrivate && !$byPass) {
@@ -286,9 +286,9 @@ class GroupController extends Controller
                 ->wherePivot('role', 'admin')
                 ->exists();
 
-            if (!$isAdmin) {
-                return response()->json(['message' => 'Forbidden: only admins can remove members.'], 403);
-            }
+            // if (!$isAdmin) {
+            //     return response()->json(['message' => 'Forbidden: only admins can remove members.'], 403);
+            // }
 
             // Cannot remove a non-member
             $member = $group->users()->where('users.id', $memberId)->first();

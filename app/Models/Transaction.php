@@ -325,7 +325,7 @@ class Transaction extends Model
         if (!empty($this->user_id) && empty($groupName)) {
             $userName = $fetchUserName($this->user_id);
             if ($userName) {
-                
+                $label .= " ({$userName})";
             }
         }
 

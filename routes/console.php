@@ -10,11 +10,11 @@ use Illuminate\Support\Facades\Schedule;
 
 
 Schedule::call(function () {
-     $now = Carbon::now();
 
-        $dueGroups = Group::where('status', 'active')
-            ->get();
-            foreach ($dueGroups as $group) {
+    $dueGroups = Group::where('status', 'active')
+    ->get();
+    foreach ($dueGroups as $group) {
+                $now = Carbon::now();
                 $payoutDate = $group->next_payout;
                 $timeFrame = $payoutDate->lessThanOrEqualTo($now);
                 if($timeFrame){

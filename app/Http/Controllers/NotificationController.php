@@ -13,16 +13,19 @@ class NotificationController extends Controller
     /**
      * Display a listing of the resource.
      */
+    // app/Http/Controllers/NotificationController.php (Inside index method)
+
     public function index(Request $request)
     {
-        //
         $data = $request->validate([
             "user_id" => "required|exists:users,id"
         ]);
 
         $user = User::find($data['user_id']);
-        $notification = $user->notifications();
-        return $notification->toResource();
+
+        // Execute the query with get() and pass to standard Resource Collection
+        $notifications = $user->notifications()->get();
+        return NotificationResource::collection($notifications);
     }
 
     /**
@@ -56,7 +59,7 @@ class NotificationController extends Controller
             $user = User::find($data['user_id']);
             $updated = $user->notifications()
             ->whereIn("id", $ids)->update(['read_at' => now()]);
-            
+
             return ["status" => "successful"]; //$notification->toResource();
         } catch (\Throwable $th) {
             throw $th;

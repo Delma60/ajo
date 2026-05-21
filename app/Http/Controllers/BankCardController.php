@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Classes\Payment\PaymentFactory;
 use App\Models\BankCard;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\BankCardResource;
 use App\Models\User;
 use App\Models\UserBankCard;
 use Illuminate\Http\Request;
@@ -17,12 +18,12 @@ class BankCardController extends Controller
      */
     public function index(Request $request)
     {
-        //
         $data = $request->validate([
             "user_id" => "required|exists:users,id"
         ]);
+
         $cards = BankCard::where("user_id", $data['user_id'])->get();
-        return $cards->toResourceCollection();
+        return BankCardResource::collection($cards); // Fixed mapping
     }
 
     /**

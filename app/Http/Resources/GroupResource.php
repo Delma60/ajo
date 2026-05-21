@@ -32,8 +32,8 @@ class GroupResource extends JsonResource
             'created_at' => $this->created_at,
             'start_date' => $this->meta['start_date'],
             'isPrivate' => $this->is_private,
-            'pendingInvites' => $this->whenLoaded('pendingInvites', $this->pendingInvites, []),
-            'pendingRequests' => $this->whenLoaded('pendingRequests', $this->pendingRequests, []),
+            'pendingInvites' => $this->whenLoaded('pendingInvites', fn() => $this->pendingInvites, []),
+            'pendingRequests' => $this->whenLoaded('pendingRequests', fn() => $this->pendingRequests, []),
             'group_transaction' => $this->group_transaction->map(function ($tx) use ($txUsers) {
                 $user = $txUsers->get($tx->user_id);
                 return [

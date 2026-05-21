@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Classes\Service\ImageService;
+use App\Classes\ImageService;
 use App\Models\Image;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
@@ -25,7 +25,7 @@ class ImageController extends Controller
      */
     public function store(Request $request)
     {
-        
+
 
         $data = $request->validate([
             // We accept either 'files' (array) or 'file' (single). Validate presence below.

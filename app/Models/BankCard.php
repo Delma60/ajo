@@ -29,6 +29,6 @@ class BankCard extends Model
     ];
 
     public function users(){
-        return $this->hasMany(BankCard::class);
+        return $this->hasMany(User::class);
     }
 }

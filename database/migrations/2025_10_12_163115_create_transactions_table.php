@@ -14,7 +14,7 @@ return new class extends Migration
             // Global references
             $table->uuid('uuid')->unique()->index();
             $table->string('reference')->nullable()->index(); // internal human ref
-            $table->string('idempotency_key')->nullable()->index();
+            $table->string('idempotency_key')->nullable()->unique();
 
             // Relations
             $table->foreignId('user_id')->nullable()->constrained()->onDelete('SET NULL');

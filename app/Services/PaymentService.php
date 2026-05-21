@@ -268,8 +268,6 @@ class PaymentService
             return $insertedTx;
         }
 
-        // Otherwise tx is pending; will be credited when webhook reconciles
-        return $tx;
     }
 
     /**

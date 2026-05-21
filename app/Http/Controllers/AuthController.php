@@ -19,9 +19,7 @@ class AuthController extends Controller implements HasMiddleware
 {
     public static function middleware ():array{
         return [
-            new Middleware("auth:sanctum", 
-            ["me", "logout", "revokeToken"], 
-            ["login", "tokenLogin", "register", "forgotPassword"])
+            (new Middleware("auth:sanctum"))->only(["me", "logout", "revokeToken"])
         ];
     }
 

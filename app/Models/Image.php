@@ -12,6 +12,12 @@ class Image extends Model
         'alt',
         'imageable_id',
         'imageable_type',
+        'disk',             // Added
+        'filename',         // Added
+        'mime',             // Added
+        'size',             // Added
+        'thumbnail_path',   // Added
+        'tag',
     ];
 
     public function imageable()
