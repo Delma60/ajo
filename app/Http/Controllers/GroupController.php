@@ -16,12 +16,15 @@ class GroupController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        //
-        $groups = Group::where(function($query) {
-            $query->where('meta->is_private', false)
-                  ->orWhereNull('meta->is_private');
+        $showAll = $request->boolean('show_all', false);
+
+        $groups = Group::where(function($query) use($showAll) {
+                if(!$showAll){
+                    $query->where('meta->is_private', false)
+                        ->orWhereNull('meta->is_private');
+                }
         })
         ->with(['users', 'owner', 'transactions'])
         ->get();
@@ -138,9 +141,11 @@ class GroupController extends Controller
      */
     public function show(Request $request, Group $group)
     {
-        $isPrivate = $group->meta['is_private'] ?? false;
+        $byPass = $request->boolean("by_pass", false);
         
-        if ($isPrivate) {
+        $isPrivate = $group->meta['is_private'] ?? false;
+
+        if ($isPrivate && !$byPass) {
             // If it is private, the currently authenticated user MUST be a member
             $user = $request->user();
             $isMember = $group->users()->where('users.id', $user->id)->exists();
@@ -346,7 +351,7 @@ class GroupController extends Controller
      * Promote a member to admin.
      * Route example: POST /groups/{group}/members/{member}/promote
      */
-    public function promoteMember(Request $request, Group $group, $memberId)
+    public function promoteMember(Request $request, Group $group, int $memberId)
     {
         try {
             $actor = $request->user();
@@ -358,7 +363,7 @@ class GroupController extends Controller
                 ->wherePivot('role', 'admin')
                 ->exists();
 
-            if (!$isAdmin) {
+            if (!$isAdmin || $actor->role->name !== 'admin') {
                 return response()->json(['message' => 'Forbidden: only admins can promote members.'], 403);
             }
 

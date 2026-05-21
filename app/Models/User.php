@@ -11,11 +11,12 @@ use App\Payable;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Notifications\DatabaseNotification;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasApiTokens, HasFactory, Notifiable, Payable;
+    use HasApiTokens, HasFactory, Notifiable, Payable, HasRoles;
 
     /**
      * The attributes that are mass assignable.
