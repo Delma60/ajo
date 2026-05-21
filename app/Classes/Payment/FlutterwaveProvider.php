@@ -152,10 +152,10 @@ class FlutterwaveProvider extends PaymentBase
         $paymentType = $data['payment_type'] ?? null;
         $customer = User::whereEmail($data['customer']['email'])->first();
         if($paymentType == "bank_transfer"){
-            $vb = VirtualBank::whereUserId($customer->id)->get();
-            foreach ($vb as $bank) {
-                $bank->delete();
-            }
+            // $vb = VirtualBank::whereUserId($customer->id)->get();
+            // foreach ($vb as $bank) {
+            //     $bank->delete();
+            // }
         }
 
         // Common identifiers

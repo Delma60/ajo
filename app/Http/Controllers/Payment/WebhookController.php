@@ -76,26 +76,31 @@ class WebhookController extends Controller
 
             $amt = (float) data_get($result, 'amount', 0);
 
+            if ($tx && $tx->status === Transaction::STATUS_SUCCESS) {
+                DB::rollBack();
+                return response()->json(['ok' => true, 'handled' => true, 'note' => 'already_processed']);
+            }
+
             // If no transaction found, handle special bank_transfer case (your existing logic)
             if (! $tx) {
                 Log::info("Webhook: transaction not found for reference {$reference}", ['provider' => $provider, 'result' => $result]);
 
                 // previous code credited wallet when payment_type is bank_transfer
                 $paymentType = data_get($result, 'raw.data.payment_type') ?: data_get($result, 'payment_type');
-                $customerId = data_get($result, 'customer.id') ?: data_get($payload, 'customer.id');
+                $customerEmail = data_get($result, 'customer.email') ?: data_get($payload, 'customer.email');
 
-                if ($paymentType === 'bank_transfer' && $customerId) {
-                    $user = User::find($customerId);
+                if ($paymentType === 'bank_transfer' && $customerEmail) {
+                    $user = User::where('email', $customerEmail)->first();
                     if ($user && $amt > 0) {
                         // Use your wallet-crediting logic (wrap in try/catch)
                         try {
                             $user->creditToWallet($amt, $result);
                             Log::info("Credited user {$user->id} wallet with {$amt} for bank transfer (no existing tx)", ['reference' => $reference]);
                         } catch (\Throwable $e) {
-                            Log::warning("Failed to credit wallet for user {$customerId}: " . $e->getMessage());
+                            Log::warning("Failed to credit wallet for user {$customerEmail}: " . $e->getMessage());
                         }
                     } else {
-                        Log::warning("Bank transfer webhook: customer not found or zero amount", ['customerId' => $customerId, 'amount' => $amt]);
+                        Log::warning("Bank transfer webhook: customer not found or zero amount", ['customerEmail' => $customerEmail, 'amount' => $amt]);
                     }
                 }
 

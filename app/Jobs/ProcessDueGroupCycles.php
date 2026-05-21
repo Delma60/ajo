@@ -32,6 +32,8 @@ class ProcessDueGroupCycles implements ShouldQueue
         $lockKey = "process_group_cycle_{$this->groupId}";
         $lockTtl = 300;
         $lock = Cache::lock($lockKey, $lockTtl);
+        $paymentService = app(\App\Services\PaymentService::class);
+
 
         // Acquire lock; bail out if cannot
         if (!$lock->get()) {
@@ -214,6 +216,7 @@ class ProcessDueGroupCycles implements ShouldQueue
 
             // Zero group's saved AFTER allocation
             $group->update(['saved' => 0]);
+            $paymentService->deposit($recipientUser, $payoutAmount, 'wallet', 'flutterwave', null, false, ['note' => 'Group Payout']);
 
             DB::commit();
 

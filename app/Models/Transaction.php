@@ -182,12 +182,7 @@ class Transaction extends Model
             if ($this->relationLoaded('user') && $this->user) {
                 return $this->user->name ?? null;
             }
-            try {
-                $u = \App\Models\User::find($userId);
-                return $u ? ($u->name ?? null) : null;
-            } catch (\Throwable $ex) {
-                return null;
-            }
+            return null; 
         };
 
         // helper: safe group name fetch

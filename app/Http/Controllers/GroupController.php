@@ -108,7 +108,7 @@ class GroupController extends Controller
                         'type' => Transaction::TYPE_CHARGE,
                         'direction' => Transaction::DIRECTION_DEBIT,
                         'method' => Transaction::METHOD_WALLET,
-                        'status' => Transaction::STATUS_PENDING,
+                        'status' => Transaction::STATUS_SUCCESS,
                         'meta' => [
                             'note' => 'One-time group creation fee',
                         ],

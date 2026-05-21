@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('bank_cards', function (Blueprint $table) {
             $table->id();
-            // $table->foreignId("user_id")->constrained()->cascadeOnDelete();
+            $table->foreignId("user_id")->constrained()->cascadeOnDelete();
              $table->string('provider_payment_method_id')->nullable()->unique();
 
             // Card info (non-sensitive)
