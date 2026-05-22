@@ -13,6 +13,7 @@ use App\Http\Controllers\InviteController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Payment\PaymentController;
 use App\Http\Controllers\Payment\WebhookController;
+use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\SystemAlertController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\UsersController;
@@ -100,6 +101,11 @@ Route::prefix("v1")->group(function(){
                 Route::post('/{alert}/read',       'markRead');
                 Route::delete('/{alert}',          'destroy');
             });
+        });
+
+        Route::prefix('settings')->controller(SettingsController::class)->group(function(){
+            Route::put('/notifications', 'updateNotifications');
+            
         });
 
 

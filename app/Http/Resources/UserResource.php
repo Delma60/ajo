@@ -20,7 +20,7 @@ class UserResource extends JsonResource
         $referralCode = $this->referral_code;
         $referredUsers = collect();
         $invitedCount = 0;
-        
+
         // Only load referral data if this is a "full" profile response
         if ($request->routeIs('*.me') || $request->query('include_referrals')) {
             $referrals = Referral::whereReferrerId($this->id)
@@ -75,6 +75,25 @@ class UserResource extends JsonResource
             "banks" => $this->whenLoaded('banks', BankResource::collection($this->banks), []),
             "groups" => $this->whenLoaded('groups', GroupResource::collection($this->groups), []),
             "virtual_bank" => $this->whenLoaded('virtualBank', new VirtualBankResource($this->virtualBank), null),
+            'settings' => [
+                'notifications' => [
+                    'email_payouts' => $this->getSetting('notifications.email_payouts', true),
+                    'email_investments' => $this->getSetting('notifications.email_investments', true),
+                    'email_invites' => $this->getSetting('notifications.email_invites', true),
+                    'email_marketing' => $this->getSetting('notifications.email_marketing', true),
+                    'push_activity' => $this->getSetting('notifications.push_activity', true),
+                    'push_reminders' => $this->getSetting('notifications.push_reminders', true),
+                    'sms_security' => $this->getSetting('notifications.sms_security', true),
+                ],
+                'kyc' => [
+                    'bvn' => $this->getSetting('kyc.bvn', null),
+                    'id_type' => $this->getSetting('kyc.id_type', null),
+                    'id_number' => $this->getSetting('kyc.id.number', null),
+                    'id_document_front' => $this->getSetting('kyc.id.document_front', null),
+                    'id_document_back' => $this->getSetting('kyc.id.document_back', null),
+                    'kyc_level' => $this->getSetting('kyc.kyc_level', 0),
+                ]
+            ]
         ];
     }
 

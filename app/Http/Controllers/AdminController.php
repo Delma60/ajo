@@ -218,11 +218,12 @@ class AdminController extends Controller
      * Returns `user` and `group` as nested objects so the frontend can
      * access tx.user.name and tx.group.name directly.
      */
-    public function recentTransactions(): JsonResponse
+    public function recentTransactions(Request $request): JsonResponse
     {
+        $num = $request->input('num', 10);
         $transactions = Transaction::with(['user:id,name,email', 'group:id,name'])
             ->latest()
-            ->take(10)
+            ->take($num)
             ->get();
 
         return response()->json(TransactionResource::collection($transactions)->resolve());
