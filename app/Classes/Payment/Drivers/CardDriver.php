@@ -1,36 +1,55 @@
 <?php
+
 namespace App\Classes\Payment\Drivers;
 
-use App\Classes\Payment\FlutterwaveProvider;
+use App\Classes\Payment\PaymentInterface;
 use App\Models\BankCard;
 use App\Models\UserBankCard;
-use Illuminate\Support\Facades\Log;
 
+/**
+ * CardDriver
+ *
+ * Bridges a generic charge() call into the provider's card-specific flow.
+ * Invoked via: PaymentFactory::provider('flutterwave')->driver('card')($payload)
+ */
 class CardDriver
 {
-    protected FlutterwaveProvider $provider;
+    protected PaymentInterface $provider;
 
-    public function __construct(FlutterwaveProvider $provider)
+    public function __construct(PaymentInterface $provider)
     {
         $this->provider = $provider;
     }
 
-    public function __invoke(array $payload):mixed
+    /**
+     * @param array $payload  Must include: card_id, user_id, amount, reference, currency?
+     */
+    public function __invoke(array $payload): mixed
     {
-        $card = BankCard::findOrFail($payload['card_id']);
-        $cardPivot = UserBankCard::where("user_id", $payload['user_id'])->firstOrFail();
-        $cardArray = array_merge($card->toResource()->toArray(Request()), [
-            "nonce" => $this->nonce()
-        ]);
-        return $this->provider->cardDriver(array_merge($payload, ["card" => $cardArray, "customer_id" => $cardPivot->customer_id]));
+        $card     = BankCard::findOrFail($payload['card_id']);
+        $cardPivot = UserBankCard::where('user_id', $payload['user_id'])->firstOrFail();
+
+        // Build the card sub-array expected by the provider (includes raw numbers + nonce)
+        $cardArray = array_merge(
+            $card->toResource()->toArray(request()),
+            ['nonce' => $this->nonce()]
+        );
+
+        return $this->provider?->cardDriver(
+            array_merge($payload, [
+                'card'        => $cardArray,
+                'customer_id' => $cardPivot->customer_id,
+            ])
+        );
     }
 
-    public function nonce($length=12){
-        $characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        $nonce = '';
+    protected function nonce(int $length = 12): string
+    {
+        $chars  = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        $result = '';
         for ($i = 0; $i < $length; $i++) {
-            $nonce .= $characters[random_int(0, strlen($characters) - 1)];
+            $result .= $chars[random_int(0, strlen($chars) - 1)];
         }
-        return $nonce;
+        return $result;
     }
 }

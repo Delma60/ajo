@@ -6,109 +6,84 @@ use Illuminate\Http\Client\Factory as HttpClient;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 use InvalidArgumentException;
 
+/**
+ * PaymentBase
+ *
+ * Provides shared HTTP helpers (post/put/get) and soft default implementations
+ * for every PaymentInterface method.  Concrete providers override what they need;
+ * they no longer have to implement abstract stubs they will never use.
+ */
 abstract class PaymentBase implements PaymentInterface
 {
     protected HttpClient $http;
 
-    /**
-     * Optionally pass a custom HTTP client (useful for testing).
-     *
-     * @param HttpClient|null $http
-     */
-    public function __construct( ?HttpClient $http = null)
+    public function __construct(?HttpClient $http = null)
     {
-        // Default to Laravel's Http client
         $this->http = $http ?? Http::getFacadeRoot();
-        
     }
 
+    // -------------------------------------------------------------------------
+    // Subclasses MUST declare these two
+    // -------------------------------------------------------------------------
 
-    /**
-     * Make a POST request to provider.
-     *
-     * @param string $path  Path relative to baseUrl()
-     * @param array  $payload
-     * @param array  $extraHeaders
-     * @return array Normalized result: ['ok' => bool, 'status' => int, 'raw' => array]
-     */
-    protected function post(string $path, array $payload = [], array $extraHeaders = []): array
+    abstract public function baseUrl(): string;
+
+    /** Default headers sent with every request (e.g. Authorization). */
+    abstract protected function header(): array;
+
+    // -------------------------------------------------------------------------
+    // Shared HTTP helpers
+    // -------------------------------------------------------------------------
+
+    protected function post(string $path, array $payload = [], array $extra = []): array
     {
         if ($path === '') {
             throw new InvalidArgumentException('path is required for post()');
         }
 
-
-        $url = rtrim($this->baseUrl(), '/') . '/' . ltrim($path, '/');
-        $headers = array_merge($this->header(), $extraHeaders);
-
-        /** @var Response $response */
-
+        $url      = rtrim($this->baseUrl(), '/') . '/' . ltrim($path, '/');
+        $headers  = array_merge($this->header(), $extra);
         $response = $this->http->withHeaders($headers)->post($url, $payload);
 
-        $decoded = $this->safeJson($response);
-
         return [
-            'ok' => $response->successful(),
+            'ok'     => $response->successful(),
             'status' => $response->status(),
-            'raw' => $decoded,
+            'raw'    => $this->safeJson($response),
         ];
     }
 
-    protected function put(string $path, array $payload = [], array $extraHeaders = []): array
+    protected function put(string $path, array $payload = [], array $extra = []): array
     {
         if ($path === '') {
-            throw new InvalidArgumentException('path is required for post()');
+            throw new InvalidArgumentException('path is required for put()');
         }
 
-        $url = rtrim($this->baseUrl(), '/') . '/' . ltrim($path, '/');
-        $headers = array_merge($this->header(), $extraHeaders);
-
-        /** @var Response $response */
+        $url      = rtrim($this->baseUrl(), '/') . '/' . ltrim($path, '/');
+        $headers  = array_merge($this->header(), $extra);
         $response = $this->http->withHeaders($headers)->put($url, $payload);
 
-        $decoded = $this->safeJson($response);
-
         return [
-            'ok' => $response->successful(),
+            'ok'     => $response->successful(),
             'status' => $response->status(),
-            'raw' => $decoded,
+            'raw'    => $this->safeJson($response),
         ];
     }
 
-    /**
-     * Make a GET request to provider.
-     *
-     * @param string $path
-     * @param array  $query
-     * @param array  $extraHeaders
-     * @return array
-     */
-    protected function get(string $path, array $query = [], array $extraHeaders = []): array
+    protected function get(string $path, array $query = [], array $extra = []): array
     {
-        $url = rtrim($this->baseUrl(), '/') . '/' . ltrim($path, '/');
-        $headers = array_merge($this->header(), $extraHeaders);
-
-        /** @var Response $response */
+        $url      = rtrim($this->baseUrl(), '/') . '/' . ltrim($path, '/');
+        $headers  = array_merge($this->header(), $extra);
         $response = $this->http->withHeaders($headers)->get($url, $query);
 
-        $decoded = $this->safeJson($response);
-
         return [
-            'ok' => $response->successful(),
+            'ok'     => $response->successful(),
             'status' => $response->status(),
-            'raw' => $decoded,
+            'raw'    => $this->safeJson($response),
         ];
     }
 
-    /**
-     * Safely decode response JSON (fallback to raw body).
-     *
-     * @param Response $response
-     * @return array
-     */
     protected function safeJson(Response $response): array
     {
         try {
@@ -119,103 +94,53 @@ abstract class PaymentBase implements PaymentInterface
         }
     }
 
-    abstract protected function handleTransfer(array $payload):array;
+    // -------------------------------------------------------------------------
+    // PaymentInterface — soft defaults (throw clearly if a provider omits them)
+    // -------------------------------------------------------------------------
 
-    public function transfer(array $payload): array
+    public function charge($method, array $payload): array
     {
-        return $this->handleTransfer($payload);
+        throw new \BadMethodCallException(static::class . '::charge() is not implemented.');
     }
 
-
-    //
-    // ABSTRACT METHODS (providers MUST implement these)
-    //
-
-    /**
-     * Base URL for the provider (e.g. sandbox/production).
-     *
-     * @return string
-     */
-    abstract public function baseUrl(): string;
-    abstract public function accessToken(): string;
-    // api version
-    abstract public string $version;
-
-    /**
-     * Return default headers for provider requests (e.g. Authorization).
-     *
-     * @return array
-     */
-    abstract protected function header(): array;
-
-
-    function deposit($method, array $payload):array{
+    public function deposit($method, array $payload): array
+    {
+        // Default: alias charge
         return $this->charge($method, $payload);
     }
 
-    /**
-     * Convert generic payload into provider-specific request payload.
-     *
-     * @param array $payload
-     * @return array
-     */
-    abstract protected function formatRequest(array $payload): array;
+    public function handleWebhook(array $payload): array
+    {
+        throw new \BadMethodCallException(static::class . '::handleWebhook() is not implemented.');
+    }
 
-    /**
-     * Normalize provider response into app-friendly shape.
-     *
-     * @param array $response
-     * @return array
-     */
-    abstract protected function formatResponse(array $response): array;
+    public function transfer(array $payload): array
+    {
+        throw new \BadMethodCallException(static::class . '::transfer() is not implemented.');
+    }
 
-    /**
-     * Initiate a charge. Providers must implement this (from PaymentInterface).
-     *
-     * @param array $payload
-     * @return array
-     */
-    public function charge($method, array $payload):array {
-        $availableDrivers = $this->availableDrivers();
-        $payload['trackId'] = Str::uuid()->toString();
-        if(!in_array($method, $availableDrivers)){
-            throw new \InvalidArgumentException(
-                sprintf(
-                "Method '%s' not available for provider %s. Available: %s",
-                $method,
-                static::class,
-                implode(', ', $availableDrivers)
-            )
-            );
-        }
-        $driver = $this->driver($method);
-        $payment = $driver($payload);
-        return array_merge($payment, ["reference" => $payload['reference'], "trackId" => $payload['trackId']]);
+    public function verifyBankAccount(array $payload): array
+    {
+        throw new \BadMethodCallException(static::class . '::verifyBankAccount() is not implemented.');
+    }
+
+    public function listBanks(): array
+    {
+        throw new \BadMethodCallException(static::class . '::listBanks() is not implemented.');
+    }
+
+    public function createCustomer(array $payload): array
+    {
+        throw new \BadMethodCallException(static::class . '::createCustomer() is not implemented.');
     }
 
     public function verifyCardPayment(array $payload): mixed
     {
-        return $this->cardPaymentVerification($payload);
+        throw new \BadMethodCallException(static::class . '::verifyCardPayment() is not implemented.');
     }
 
-    public function generateVirtualAccount(array $payload): array {
-        return $this->virtualAccount($payload);
+    public function generateVirtualAccount(array $payload): array
+    {
+        throw new \BadMethodCallException(static::class . '::generateVirtualAccount() is not implemented.');
     }
-
-
-
-    /**
-     * Handle a webhook/callback. Providers must implement this (from PaymentInterface).
-     *
-     * @param array $payload
-     * @return array
-     */
-    abstract public function handleWebhook(array $payload): array;
-
-
-    abstract protected function driver($driver):mixed;
-    abstract protected function availableDrivers():array;
-    abstract protected function createCharge(array $payload):mixed;
-    abstract protected function cardPaymentVerification(array $payload):mixed;
-    abstract protected function virtualAccount(array $payload):mixed;
 }

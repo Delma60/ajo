@@ -19,7 +19,7 @@ class Provider extends Model
         'meta' => 'array',
     ];
 
-    protected $appends = ['fees', 'supported_methods', 'total_transactions'];
+    protected $appends = ['fees', 'supported_methods', 'version', 'total_transactions'];
 
     public function getFeesAttribute()
     {
@@ -39,6 +39,12 @@ class Provider extends Model
     public function getTotalTransactionsAttribute()
     {
         return $this->transactions()->count();
+    }
+
+    // version atribute for flutterwave provider to determine which API version to use
+    public function getVersionAttribute()
+    {
+        return $this->meta['version'] ?? 'v3';
     }
 }
 
