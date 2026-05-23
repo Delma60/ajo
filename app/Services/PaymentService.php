@@ -144,7 +144,7 @@ class PaymentService
         array $meta
     )
     {
-        
+        $methods = settings("payment_methods", []);
         $amount = (float) $amount;
         if ($amount <= 0) {
             throw new \InvalidArgumentException('Amount must be greater than zero.');

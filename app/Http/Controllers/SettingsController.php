@@ -79,4 +79,19 @@ class SettingsController extends Controller
 
         return response()->json(['message' => 'Notification preferences updated.']);
     }
+
+    public function resetToDefaults(Request $request)
+    {
+        // Reset all settings to defaults
+        settings()->resetToDefaults();
+        return response()->json(['message' => 'All settings reset to defaults.']);
+    }
+
+    public function appSettings(Request $request)
+    {
+        $appSettings = settings()->all();
+        return response()->json($appSettings);
+    }
+
+    
 }

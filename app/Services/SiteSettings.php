@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 /**
  * SiteSettings
@@ -22,10 +23,13 @@ use Illuminate\Support\Facades\Cache;
  *   SiteSettings::set('fees.creation_fee_pct', 5.0);
  *   SiteSettings::forget('fees.creation_fee_pct');
  *
- * The DB table `site_settings` has columns:
- *   key  VARCHAR(120) PRIMARY KEY
+ * The DB table `settings` has columns:
+ *   id INT PRIMARY KEY
+ *   key VARCHAR(120)
  *   value TEXT (JSON-encoded)
- *   updated_by INT NULL (FK users.id)
+ *   settingable_id INT NULL
+ *   settingable_type VARCHAR(255) NULL
+ *   created_at TIMESTAMP
  *   updated_at TIMESTAMP
  */
 class SiteSettings
@@ -197,7 +201,7 @@ class SiteSettings
     {
         $this->assertKnownKey($key);
 
-        \DB::table('settings')->upsert(
+        DB::table('settings')->upsert(
             [
                 'key'        => $key,
                 'value'      => json_encode($value),
@@ -216,7 +220,7 @@ class SiteSettings
      */
     public function forget(string $key): void
     {
-        \DB::table('site_settings')->where('key', $key)->delete();
+        DB::table('settings')->where('key', $key)->delete();
         $this->bust();
     }
 
@@ -269,7 +273,7 @@ class SiteSettings
     protected function loadFromDb(): array
     {
         try {
-            $rows = \DB::table('site_settings')->get(['key', 'value']);
+            $rows = DB::table('settings')->get(['key', 'value']);
         } catch (\Throwable) {
             // Table not yet migrated — fall back gracefully.
             return [];
@@ -294,6 +298,13 @@ class SiteSettings
         return array_merge($this->defaults, [
             'platform.url' => $this->defaults['platform.url'] ?? config('app.url'),
         ]);
+    }
+    // reset to defaults by deleting all overrides
+     public function resetToDefaults(): void
+    {
+        DB::table('settings')->delete();
+        $this->bust();
+        $this->set('', null);
     }
 
     protected function assertKnownKey(string $key): void

@@ -5,11 +5,14 @@ use App\Http\Resources\PaymentGatewayResource;
 use App\Models\Provider as PaymentProvider;
 use App\Models\WebhookLog;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class PaymentGatewayController extends Controller
 {
     public function index()
     {
+        $methods = settings("payment_methods", []);
+        Log::info("Payment methods from settings: " . json_encode($methods));
         $paymentProviders = PaymentProvider::withCount([
             'transactions as total_transactions',
             'transactions as successful_transactions' => function ($query) {

@@ -115,6 +115,13 @@ Route::prefix("v1")->group(function(){
                     Route::post('/{log}/retry', 'retryWebhook');
                 });
             });
+            // admin settings
+            Route::prefix('settings')->controller(SettingsController::class)->group(function () {
+                // admin reset
+                Route::post('/reset', 'resetToDefaults');
+                Route::get('/app', 'appSettings');
+
+            });
         });
 
 
