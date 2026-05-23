@@ -11,10 +11,10 @@ use App\Models\ExpoPushToken;
 use App\Notifications\TransactionNotification;
 
 use App\Jobs\SendExpoSdkPushJob;
+use App\Models\WebhookLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 
 class WebhookController extends Controller
 {
@@ -105,7 +105,13 @@ class WebhookController extends Controller
                 }
 
                 // persist debug dump and commit (no tx to update)
-                Storage::put($dumpPath, json_encode($payload, JSON_PRETTY_PRINT));
+                WebhookLog::create([
+                    'provider' => $provider,
+                    'event' => $providerWebhookType,
+                    'status' => 'pending',
+                    'payload' => json_encode($payload),
+                    'reference' => $reference,
+                ]);
                 DB::commit();
 
                 return response()->json(['ok' => true, 'handled' => true, 'note' => 'no_transaction_found']);
@@ -198,7 +204,15 @@ class WebhookController extends Controller
             }
 
             // Save debug dump and commit
-            Storage::put($dumpPath, json_encode($payload, JSON_PRETTY_PRINT));
+            WebhookLog::create([
+                'provider' => $provider,
+                'event' => $providerWebhookType,
+                'status' => 'delivered',
+                'payload' => json_encode($payload),
+                'reference' => $reference,
+                'http_status' => 200,
+            ]);
+            // Storage::put($dumpPath, json_encode($payload, JSON_PRETTY_PRINT));
             DB::commit();
 
             return response()->json(['ok' => true, 'handled' => true]);

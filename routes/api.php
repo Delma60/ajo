@@ -13,6 +13,7 @@ use App\Http\Controllers\InviteController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Payment\PaymentController;
 use App\Http\Controllers\Payment\WebhookController;
+use App\Http\Controllers\PaymentGatewayController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\SystemAlertController;
 use App\Http\Controllers\TransactionController;
@@ -101,11 +102,25 @@ Route::prefix("v1")->group(function(){
                 Route::post('/{alert}/read',       'markRead');
                 Route::delete('/{alert}',          'destroy');
             });
+            Route::prefix("payment-gateways")->controller(PaymentGatewayController::class)->group(function(){
+                Route::prefix('providers')->group(function(){
+                    Route::get('/', 'index');
+                    Route::post('/', 'store');
+                    Route::post('/{provider}/toggle', 'toggle');
+                    Route::post('/{provider}/set-default', 'setDefault');
+                    Route::post('/{provider}/test', 'testConnection');
+                });
+                Route::prefix('webhook-logs')->group(function(){
+                    Route::get('/', 'webhookLogs');
+                    Route::post('/{log}/retry', 'retryWebhook');
+                });
+            });
         });
+
 
         Route::prefix('settings')->controller(SettingsController::class)->group(function(){
             Route::put('/notifications', 'updateNotifications');
-            
+
         });
 
 

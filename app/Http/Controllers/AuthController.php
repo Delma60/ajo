@@ -26,7 +26,6 @@ class AuthController extends Controller implements HasMiddleware
     public  function me(Request $request)
     {
         $user = $request->user();
-        Log::info($user);
         if (!$user) {
             return response()->json([
                 "user" => new UserResource($user),

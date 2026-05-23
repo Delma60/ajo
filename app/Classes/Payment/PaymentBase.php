@@ -18,10 +18,11 @@ abstract class PaymentBase implements PaymentInterface
      *
      * @param HttpClient|null $http
      */
-    public function __construct(?HttpClient $http = null)
+    public function __construct( ?HttpClient $http = null)
     {
         // Default to Laravel's Http client
         $this->http = $http ?? Http::getFacadeRoot();
+        
     }
 
 
@@ -136,6 +137,9 @@ abstract class PaymentBase implements PaymentInterface
      * @return string
      */
     abstract public function baseUrl(): string;
+    abstract public function accessToken(): string;
+    // api version
+    abstract public string $version;
 
     /**
      * Return default headers for provider requests (e.g. Authorization).

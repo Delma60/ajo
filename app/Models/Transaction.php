@@ -27,6 +27,7 @@ class Transaction extends Model
         'type',
         'direction',
         'provider',
+        'provider_id',
         'method',
         'provider_reference',
         'status',
@@ -115,7 +116,7 @@ class Transaction extends Model
                     Log::warning('Transaction::generateLabel failed: ' . $ex->getMessage());
                     $typeString = $t->type ?? 'Transaction';
                     $t->label = self::$typeLabels[$typeString] ?? ucfirst($typeString);
-                    
+
                 }
             }
         });
@@ -184,7 +185,7 @@ class Transaction extends Model
             if ($this->relationLoaded('user') && $this->user) {
                 return $this->user->name ?? null;
             }
-            return null; 
+            return null;
         };
 
         // helper: safe group name fetch
