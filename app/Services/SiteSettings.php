@@ -60,7 +60,7 @@ class SiteSettings
         'platform.registration_open'=> true,
 
         // ── Platform fees ────────────────────────────────────────────────────
-        'fees.creation_fee_pct'     => 5.0,   // % of first contribution
+        'fees.creation_fee_pct'     => 15.0,   // % of first contribution
         'fees.contribution_fee_pct' => 0.0,   // % per contribution
         'fees.withdrawal_fee_pct'   => 0.5,   // % of amount withdrawn
         'fees.withdrawal_fee_flat'  => 50.0,  // flat ₦ added to each withdrawal
@@ -69,7 +69,7 @@ class SiteSettings
         'fees.referral_reward'      => 1000.0,// ₦ credited to referrer
 
         // ── Contribution & withdrawal limits ────────────────────────────────
-        'limits.min_contribution'   => 500.0,
+        'limits.min_contribution'   => 5000.0,
         'limits.max_contribution'   => 5_000_000.0,
         'limits.min_withdrawal'     => 500.0,
         'limits.max_withdrawal_daily'=> 2_000_000.0,
@@ -205,11 +205,12 @@ class SiteSettings
             [
                 'key'        => $key,
                 'value'      => json_encode($value),
-                'updated_by' => $updatedBy,
-                'updated_at' => now(),
+                'settingable_id'   => null,   // global — not tied to any model
+                'settingable_type' => null,
+                'updated_at'       => now(),
             ],
-            ['key'],
-            ['value', 'updated_by', 'updated_at']
+            ['key', 'settingable_id', 'settingable_type'],  // unique composite
+            ['value', 'updated_at']
         );
 
         $this->bust();
@@ -321,5 +322,43 @@ class SiteSettings
     public static function __callStatic(string $name, array $args): mixed
     {
         return app(self::class)->{$name}(...$args);
+    }
+
+    /**
+     * Convert a flat dot-notated array to a nested array.
+     *
+     * @param array $array
+     * @return array
+     */
+    /**
+     * Convert a flat dot-notated array to a nested array.
+     * Handles conflicts gracefully (if a parent key is already a value, it will be overwritten by an array).
+     *
+     * @param array $array
+     * @return array
+     */
+    public static function undot(array $array): array
+    {
+        $result = [];
+        foreach ($array as $key => $value) {
+            if (strpos($key, '.') === false) {
+                $result[$key] = $value;
+                continue;
+            }
+            $segments = explode('.', $key);
+            $temp = &$result;
+            foreach ($segments as $i => $segment) {
+                if ($i === count($segments) - 1) {
+                    $temp[$segment] = $value;
+                } else {
+                    if (!isset($temp[$segment]) || !is_array($temp[$segment])) {
+                        $temp[$segment] = [];
+                    }
+                    $temp = &$temp[$segment];
+                }
+            }
+            unset($temp);
+        }
+        return $result;
     }
 }

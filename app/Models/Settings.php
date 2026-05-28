@@ -50,4 +50,14 @@ class Settings extends Model
     {
         return $this->morphTo();
     }
+
+    // save key
+    public function scopeSave($query, $key, $value, $settingable_id, $settingable_type)
+    {
+        return $query->updateOrCreate(
+            ['key' => $key, 'settingable_id' => $settingable_id, 'settingable_type' => $settingable_type],
+            ['value' => $value]
+        ); 
+
+    }
 }

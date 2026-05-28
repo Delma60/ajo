@@ -31,6 +31,7 @@ class SettingsController extends Controller
     public function store(StoreSettingsRequest $request)
     {
         //
+        Settings
     }
 
     /**
@@ -84,12 +85,18 @@ class SettingsController extends Controller
     {
         // Reset all settings to defaults
         settings()->resetToDefaults();
-        return response()->json(['message' => 'All settings reset to defaults.']);
+        // new SiteSettings will automatically pull the default values when accessed after reset
+        $s = settings()->all();
+        $appSettings = \App\Services\SiteSettings::undot($s);
+        return response()->json($appSettings);
     }
 
     public function appSettings(Request $request)
     {
-        $appSettings = settings()->all();
+        // Get all settings as a flat array
+        $flatSettings = settings()->all();
+        // Convert to nested array for frontend
+        $appSettings = \App\Services\SiteSettings::undot($flatSettings);
         return response()->json($appSettings);
     }
 

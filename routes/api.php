@@ -120,6 +120,7 @@ Route::prefix("v1")->group(function(){
                 // admin reset
                 Route::post('/reset', 'resetToDefaults');
                 Route::get('/app', 'appSettings');
+                
 
             });
         });
@@ -127,6 +128,7 @@ Route::prefix("v1")->group(function(){
 
         Route::prefix('settings')->controller(SettingsController::class)->group(function(){
             Route::put('/notifications', 'updateNotifications');
+            Route::post('/', 'store');
 
         });
 
